@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+    <head th:replace="layout :: common_header(~{::title})">
+        <title>Error</title>
+    </head>
+
+    <body>
+    <div th:replace="layout :: nav"></div>
+
+    <div class="grid-container">
+        <div class="grid-100">
+            <div th:replace="layout :: logo"></div>
+            <div th:replace="layout :: flash"></div>
+
+            <div>
+                <h1 th:text="${status} + | | + ${error}">Error</h1>
+                <h2 th:text="${message}">Error Message</h2>
+            </div>
+                <button style="display: inline" type="submit" class="secondary"><a th:href="@{/}">Go Back</a></button>
+        </div> <!-- grid-100 -->
+    </div> <!-- grid-container -->
+    </body>
+</html>

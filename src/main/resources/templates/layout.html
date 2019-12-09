@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head th:fragment="common_header(title)">
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width"/>
+
+    <title th:replace="${title}">My Recipes</title>
+
+    <link href='https://fonts.googleapis.com/css?family=Varela+Round' rel='stylesheet' type='text/css'/>
+    <link rel="stylesheet" th:href="@{/unsemantic-grid-responsive.css}"/>
+    <link rel="stylesheet" th:href="@{/styles.css}"/>
+</head>
+
+<div th:fragment="scripts">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script type="text/javascript" th:src="@{/scripts/app.js}"></script>
+</div>
+
+    <body>
+
+        <div th:fragment="nav">
+            <nav>
+                <a th:if="${user} != null" th:href="@{/profile}" th:text="${user?.username}">Username</a>
+                <a th:if="${user} == null" th:href="@{/signup}">signup</a>
+                &bull;
+                <a th:if="${user} != null" th:href="@{/logout}">logout</a>
+                <a th:if="${user} == null" th:href="@{/login}">login</a>
+            </nav>
+        </div>
+
+        <div th:fragment="flash" th:if="${flash != null}" id="flash-message">
+            <div id="mdiv-close-flash" class="right material-icons">
+                <div class="mdiv">
+                    <div class="md"></div>
+                </div>
+            </div>
+            <div th:classappend="${#strings.toLowerCase(flash.status)}" th:text="${flash.message}" class="flash"></div>
+        </div>
+
+        <div th:fragment="logo" class="grid-100">
+            <a th:href="@{/index}">
+                <h1>
+                    <img th:src="@{/images/chefbot.svg}" height="60px"/>
+                    <br/>
+                    My Recipes
+                </h1>
+            </a>
+        </div>
+
+    </body>
+</html>

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="layout :: common_header(~{::title})">
+  <title th:text="${user?.username} + ' | My Recipes'"></title>
+</head>
+
+<body>
+
+<div th:replace="layout :: nav"></div>
+
+<div class="grid-container">
+
+  <div th:replace="layout :: logo"></div>
+  <div th:replace="layout :: flash"></div>
+
+  <div class="grid-100">
+
+    <div class="recipes">
+
+      <div class="grid-100 row controls">
+        <div class="grid-100">
+          <h2 th:text="${user?.username}"> Username </h2>
+        </div>
+      </div> <div class="clear"></div>
+
+      <div th:each="recipe : ${recipes}" class="grid-100 row addHover">
+
+        <div class="grid-70">
+          <p>
+          <form th:action="@{|/recipe/${recipe.id}/favorite|}" method="post">
+            <span><a th:href="@{/login}">
+              <img th:if="${user} == null" th:src="@{/images/favorite.svg}" height="12px">
+            </a></span>
+            <button th:if="${user} != null" type="submit" class="favorite-button">
+              <img th:src="${recipe.isFavored(user)} ? @{/images/favorited.svg} : @{/images/favorite.svg}" height="12px"/>
+            </button>
+            <a th:href="@{|/recipe/detail/${recipe.id}|}">
+              <span th:text="${recipe.name}">Recipe Title</span>
+            </a>
+          </form>
+          </p>
+        </div>
+
+        <div class="hoverBlock">
+          <div class="grid-30">
+            <div class="flush-right">
+              <p>
+                <a th:href="@{|/recipe/edit/${recipe.id}|}"> <img th:src="@{/images/edit.svg}" height="12px"/> Edit </a>
+                <a th:href="@{|/recipe/delete/${recipe.id}|}"> <img th:src="@{/images/delete.svg}" height="12px"/> Delete </a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div> <div class="clear"></div>
+
+      <div class="row">&nbsp;</div>
+
+    </div> <!-- recipes -->
+  </div> <!-- grid-100 -->
+</div> <!-- grid-container -->
+<div th:replace="layout :: scripts"></div>
+</body>
+</html>
