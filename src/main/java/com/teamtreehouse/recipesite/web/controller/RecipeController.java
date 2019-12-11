@@ -11,6 +11,7 @@ import com.teamtreehouse.recipesite.web.Category;
 import com.teamtreehouse.recipesite.web.FlashMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
@@ -38,21 +39,18 @@ public class RecipeController {
     private UserService userService;
 
     @RequestMapping(value = {"/index", "/recipe", "/"}, method = RequestMethod.GET)
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public String login(
             @RequestParam(name="category", required=false) String category,
+            @RequestParam(name="searchTerm", required=false) String searchTerm,
             Model model, Principal principal) {
 
         User user = getUser( (UsernamePasswordAuthenticationToken) principal);
 
-        List<Recipe> recipes;
-        if(category == null || category.equals("ALL CATEGORIES")){
-            recipes = recipeService.findAll();
-        } else {
-            //TODO: The repo should do this filter
-            recipes = recipeService.findAll().stream().filter(recipe -> recipe.getCategory().getName().equalsIgnoreCase(category)).collect(Collectors.toList());
-        }
+        List<Recipe> recipes = recipeService.searchAndFilter(category, searchTerm);
 
         model.addAttribute("recipes", recipes);
+        model.addAttribute("searchTerm", searchTerm);
         model.addAttribute("categories", Category.values());
         model.addAttribute("lastSelected", category);
         if(user != null){
@@ -62,6 +60,7 @@ public class RecipeController {
     }
 
     @RequestMapping(value = "/recipe/detail/{recipeId}", method = RequestMethod.GET)
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
     public String detail(@PathVariable Long recipeId, Model model, Principal principal) {
         if(!model.containsAttribute("recipe")) {
             model.addAttribute("recipe", recipeService.findById(recipeId));
@@ -74,8 +73,9 @@ public class RecipeController {
         return "detail";
     }
 
-    @RequestMapping(value = "recipe/save", method = RequestMethod.GET)
-    public String saveRecipe(Model model, HttpServletRequest request, Principal principal) {
+    @RequestMapping(value = "recipe/create", method = RequestMethod.GET)
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    public String createRecipe(Model model, HttpServletRequest request, Principal principal) {
         if (!model.containsAttribute("recipe")) {
             Recipe recipe = new Recipe();
             recipe.addIngredient(new Ingredient("", "", 0));
@@ -87,31 +87,19 @@ public class RecipeController {
         if (user != null) {
             model.addAttribute("user", user);
         }
-        model.addAttribute("action", "/recipe/save");
+        model.addAttribute("action", "/recipe/create");
         model.addAttribute("categories", Category.values());
         model.addAttribute("cancel", String.format("%s", request.getHeader("referer")));
 
         return "edit";
     }
 
-    @RequestMapping(value = "recipe/save", method = RequestMethod.POST)
-    public String saveRecipe(@Valid Recipe recipe, BindingResult result, RedirectAttributes redirectAttributes) {
+    @RequestMapping(value = "recipe/create", method = RequestMethod.POST)
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    public String createRecipe(@Valid Recipe recipe, BindingResult result, RedirectAttributes redirectAttributes, Principal principal) {
         //Check instructions and ingredients
-        List<String> interimInstructions = recipe.getInstructions().stream().filter(instruction -> !instruction.trim().isEmpty()).collect(Collectors.toList());
-        List<Ingredient> interimIngredients = recipe.getIngredients().stream().filter( ingredient -> {
-            return ( (recipe.getIngredients().size() == 1
-                    && (ingredient.getCondition().trim().isEmpty()
-                        || ingredient.getItem().trim().isEmpty()
-                        || ingredient.getQuantity() <=0))
-                    ||
-                    (recipe.getInstructions().size() > 1 &&
-                            ((ingredient.getCondition().trim().isEmpty()
-                                    || ingredient.getItem().trim().isEmpty()
-                                    || ingredient.getQuantity() <= 0)
-                            && !(ingredient.getCondition().trim().isEmpty()
-                                    && ingredient.getItem().trim().isEmpty()
-                                    && ingredient.getQuantity() == 0))));
-        }).collect(Collectors.toList());
+        List<String> interimInstructions = formatInstructions(recipe);
+        List<Ingredient> interimIngredients = formatIngredients(recipe);
 
         // Add recipe if valid data was received
         if (result.hasErrors()) {
@@ -121,56 +109,45 @@ public class RecipeController {
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.recipe", result);
             redirectAttributes.addFlashAttribute("recipe", recipe);
 
-            if(interimInstructions.size() == 0){
-                redirectAttributes.addFlashAttribute("instructionError", "error");
-            }
-            if(interimIngredients.size() > 0){
-                redirectAttributes.addFlashAttribute("ingredientError", "error");
-            }
-            return "redirect:/recipe/save";
+            checkErrorForInstructionsOrIngredients(redirectAttributes, interimInstructions, interimIngredients);
+            return "redirect:/recipe/create";
         } else {
-            if(interimInstructions.size() == 0){
-                redirectAttributes.addFlashAttribute("instructionError", "error");
-            }
-            if(interimIngredients.size() > 0){
-                redirectAttributes.addFlashAttribute("ingredientError", "error");
-            }
+            checkErrorForInstructionsOrIngredients(redirectAttributes, interimInstructions, interimIngredients);
             if(interimInstructions.size() == 0 || interimIngredients.size() > 0){
                 redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.recipe", result);
                 redirectAttributes.addFlashAttribute("recipe", recipe);
-                return "redirect:/recipe/save";
+                redirectAttributes.addFlashAttribute("flash", new FlashMessage("Invalid input. Please try again.", FlashMessage.Status.FAILURE));
+                return "redirect:/recipe/create";
             }
 
-            Category category = recipe.getCategory();
-            if (category != null) {
-                recipe.setCategory(category);
-            }
-//            User user = getCurrentLoggedInUser();
+            User user = getUser((UsernamePasswordAuthenticationToken) principal);
+
             List<Ingredient> finalIngredients = recipe.getIngredients().stream().filter(ingredient -> {
                 return !(ingredient.getCondition().trim().isEmpty()
                         && ingredient.getItem().trim().isEmpty()
                         && ingredient.getQuantity() <= 0);
             }).collect(Collectors.toList());
-
-            recipe.setIngredients(finalIngredients);
             ingredientService.save(finalIngredients);
 
+            Category category = recipe.getCategory();
+            if (category != null) {
+                recipe.setCategory(category);
+            }
+
+            recipe.setIngredients(finalIngredients);
             recipe.setInstructions(interimInstructions);
-//            recipe.setUser(user);
+            recipe.setCreatedBy(user);
             recipeService.save(recipe);
-//            user.addCreatedRecipe(recipe);
-//            userService.save(user);
+
             redirectAttributes.addFlashAttribute("flash", new FlashMessage("Recipe saved!", FlashMessage.Status.SUCCESS));
         }
 
-        // Redirect browser to home page
-//        return String.format("redirect:/recipe/detail/%s", recipe.getId());
-        return String.format("redirect:/recipe");
+        return String.format("redirect:/recipe/detail/%s", recipe.getId());
     }
 
-    @RequestMapping(value="/recipe/edit/{recipeId}", method = RequestMethod.GET)
-//    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
-    public String editRecipe(@PathVariable Long recipeId, Model model, Principal principal, HttpServletRequest request) {
+    @RequestMapping(value = "/recipe/edit/{recipeId}", method = RequestMethod.GET)
+    @PreAuthorize("hasRole('ROLE_ADMIN') or @recipeRepository.findById(#recipeId).orElse(null)?.createdBy?.username == authentication.name")
+    public String editRecipe(@PathVariable Long recipeId, Model model, HttpServletRequest request, Principal principal) {
         if (!model.containsAttribute("recipe")) {
             Recipe recipe = recipeService.findById(recipeId);
             model.addAttribute("recipe", recipe);
@@ -180,29 +157,85 @@ public class RecipeController {
         if (user != null) {
             model.addAttribute("user", user);
         }
-        model.addAttribute("action", "/recipe/save");
-        model.addAttribute("cancel", String.format("%s", request.getHeader("referer")));
+        model.addAttribute("action", String.format("/recipe/update/%s", recipeId));
         model.addAttribute("categories", Category.values());
+        model.addAttribute("cancel", String.format("%s", request.getHeader("referer")));
 
         return "edit";
     }
 
-    @RequestMapping(value = "recipe/{recipeId}/favorite", method = RequestMethod.POST)
-//    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
-    public String toggleFavorite(@PathVariable Long recipeId, HttpServletRequest request, Principal principal) {
+    @RequestMapping(value = "recipe/update/{recipeId}", method = RequestMethod.POST)
+    @PreAuthorize("hasRole('ROLE_ADMIN') or @recipeRepository.findById(#recipeId).orElse(null)?.createdBy?.username == authentication.name")
+    public String updateRecipe(@Valid Recipe recipe, @PathVariable Long recipeId, BindingResult result, RedirectAttributes redirectAttributes, Principal principal) {
+        //Check instructions and ingredients
+        List<String> interimInstructions = formatInstructions(recipe);
+        List<Ingredient> interimIngredients = formatIngredients(recipe);
+
+        // Add recipe if valid data was received
+        if (result.hasErrors()) {
+            redirectAttributes.addFlashAttribute("flash", new FlashMessage("Invalid input. Please try again.", FlashMessage.Status.FAILURE));
+            System.out.println("ERROR");
+            result.getFieldErrors().forEach(error -> System.out.println(error));
+            redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.recipe", result);
+            redirectAttributes.addFlashAttribute("recipe", recipe);
+
+            checkErrorForInstructionsOrIngredients(redirectAttributes, interimInstructions, interimIngredients);
+            return String.format("redirect:/recipe/update/%s", recipeId);
+        } else {
+            checkErrorForInstructionsOrIngredients(redirectAttributes, interimInstructions, interimIngredients);
+            if(interimInstructions.size() == 0 || interimIngredients.size() > 0){
+                redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.recipe", result);
+                redirectAttributes.addFlashAttribute("recipe", recipe);
+                redirectAttributes.addFlashAttribute("flash", new FlashMessage("Invalid input. Please try again.", FlashMessage.Status.FAILURE));
+                return String.format("redirect:/recipe/update/%s", recipeId);
+            }
+
+            User user = getUser((UsernamePasswordAuthenticationToken) principal);
+
+            List<Ingredient> finalIngredients = recipe.getIngredients().stream().filter(ingredient -> {
+                return !(ingredient.getCondition().trim().isEmpty()
+                        && ingredient.getItem().trim().isEmpty()
+                        && ingredient.getQuantity() <= 0);
+            }).collect(Collectors.toList());
+            ingredientService.save(finalIngredients);
+
+            Category category = recipe.getCategory();
+            if (category != null) {
+                recipe.setCategory(category);
+            }
+
+            recipe.setIngredients(finalIngredients);
+            recipe.setInstructions(interimInstructions);
+            recipe.setCreatedBy(user);
+            recipeService.save(recipe);
+
+            redirectAttributes.addFlashAttribute("flash", new FlashMessage("Recipe updated!", FlashMessage.Status.SUCCESS));
+        }
+
+        return String.format("redirect:/recipe/detail/%s", recipe.getId());
+    }
+
+    @RequestMapping(value = "recipe/favorite/{recipeId}", method = RequestMethod.POST)
+    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
+    public String toggleFavorite(@PathVariable Long recipeId, HttpServletRequest request, Principal principal, RedirectAttributes redirectAttributes) {
         Recipe recipe = recipeService.findById(recipeId);
         User user = getUser((UsernamePasswordAuthenticationToken) principal);
         userService.toggleFavorite(user, recipe);
         userService.save(user);
 
+        redirectAttributes.addFlashAttribute("flash", new FlashMessage("Recipe saved as favorite!", FlashMessage.Status.SUCCESS));
+
         return String.format("redirect:%s", request.getHeader("referer"));
     }
-    
+
     @RequestMapping(value = "/recipe/delete/{recipeId}", method = RequestMethod.POST)
-//    @PreAuthorize("hasAnyRole('ROLE_USER', 'ROLE_ADMIN')")
-    public String deleteRecipe(@PathVariable Long recipeId, HttpServletRequest request) {
+    @PreAuthorize("hasRole('ROLE_ADMIN') or @recipeRepository.findById(#recipeId).orElse(null)?.createdBy?.username == authentication.name")
+    public String deleteRecipe(@PathVariable Long recipeId, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         Recipe recipe = recipeService.findById(recipeId);
         recipeService.delete(recipe);
+
+        redirectAttributes.addFlashAttribute("flash", new FlashMessage("Recipe deleted!", FlashMessage.Status.SUCCESS));
+
         return "redirect:/";
     }
 
@@ -215,6 +248,7 @@ public class RecipeController {
         return "error";
     }
 
+
     private User getUser(UsernamePasswordAuthenticationToken principal){
         try{
             return userService.findByUsername(((CustomUserDetails) principal.getPrincipal()).getUsername());
@@ -224,5 +258,34 @@ public class RecipeController {
         return null;
     }
 
+    private void checkErrorForInstructionsOrIngredients(RedirectAttributes redirectAttributes, List<String> interimInstructions, List<Ingredient> interimIngredients) {
+        if (interimInstructions.size() == 0) {
+            redirectAttributes.addFlashAttribute("instructionError", "error");
+        }
+        if (interimIngredients.size() > 0) {
+            redirectAttributes.addFlashAttribute("ingredientError", "error");
+        }
+    }
+
+    private List<Ingredient> formatIngredients(@Valid Recipe recipe) {
+        return recipe.getIngredients().stream().filter( ingredient -> {
+            return ( (recipe.getIngredients().size() == 1
+                    && (ingredient.getCondition().trim().isEmpty()
+                    || ingredient.getItem().trim().isEmpty()
+                    || ingredient.getQuantity() <=0))
+                    ||
+                    (recipe.getInstructions().size() > 1 &&
+                            ((ingredient.getCondition().trim().isEmpty()
+                                    || ingredient.getItem().trim().isEmpty()
+                                    || ingredient.getQuantity() <= 0)
+                                    && !(ingredient.getCondition().trim().isEmpty()
+                                    && ingredient.getItem().trim().isEmpty()
+                                    && ingredient.getQuantity() == 0))));
+        }).collect(Collectors.toList());
+    }
+
+    private List<String> formatInstructions(@Valid Recipe recipe) {
+        return recipe.getInstructions().stream().filter(instruction -> !instruction.trim().isEmpty()).collect(Collectors.toList());
+    }
 
 }

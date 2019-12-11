@@ -2,11 +2,18 @@ package com.teamtreehouse.recipesite.recipe;
 
 import org.springframework.data.repository.PagingAndSortingRepository;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.rest.core.annotation.RestResource;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface RecipeRepository extends PagingAndSortingRepository<Recipe, Long> {
+
+
+    @RestResource(rel = "name-starts-with", path = "nameStartsWith")
+    List<Recipe> findByNameStartsWith(@Param("name") String name);
 
     @Override
 //    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_USER')")

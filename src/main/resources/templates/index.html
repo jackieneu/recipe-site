@@ -19,20 +19,20 @@
         <div class="recipes">
 
           <div class="grid-100 row controls">
-            <div class="grid-30">
-              <form id="categoryForm" action="/" method="get">
-                <select name="category" id="category">
-                  <option value="ALL CATEGORIES">All Categories</option>
-                  <option th:each="category : ${categories}" th:value="${category}" th:text="${category.name}" th:selected="${category.isSelected(lastSelected)}">Category</option>
-                </select>
-              </form>
-            </div>
-            <div class="grid-40">
-              <input placeholder="Search"></input>
-            </div>
+            <form id="categoryForm" action="/" method="get">
+              <div class="grid-30">
+                  <select name="category" id="category">
+                    <option value="ALL CATEGORIES">All Categories</option>
+                    <option th:each="category : ${categories}" th:value="${category}" th:text="${category.name}" th:selected="${category.isSelected(lastSelected)}">Category</option>
+                  </select>
+              </div>
+              <div class="grid-40">
+                <input name="searchTerm" th:placeholder="${#strings.isEmpty(searchTerm)}? 'Search'" th:value="${searchTerm}" />
+              </div>
+            </form>
             <div class="grid-30">
               <div class="flush-right">
-                <form th:action="@{/recipe/save}" method="get"><button>+ Add Recipe</button></form>
+                <form th:action="@{/recipe/create}" method="get"><button>+ Add Recipe</button></form>
               </div>
             </div>
           </div> <div class="clear"></div>
@@ -41,7 +41,7 @@
 
             <div class="grid-70">
               <p>
-                <form th:action="@{|/recipe/${recipe.id}/favorite|}" method="post">
+                <form th:action="@{|/recipe/favorite/${recipe.id}|}" method="post">
                   <span><a th:href="@{/login}">
                     <img th:if="${user} == null" th:src="@{/images/favorite.svg}" height="12px">
                   </a></span>

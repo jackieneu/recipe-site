@@ -22,7 +22,7 @@
             </div>
             <div class="grid-50">
               <h2 class="flush-right">
-                <form th:action="@{|/recipe/${recipe.id}/favorite|}" method="post">
+                <form th:action="@{|/recipe/favorite/${recipe.id}|}" method="post">
                     <a th:href="@{/login}">
                         <img th:if="${user} == null" th:src="@{/images/favorite.svg}" height="16px">
                     </a>

@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.teamtreehouse.recipesite.recipe.Recipe.recipeComparator;
 
@@ -12,6 +13,29 @@ public class RecipeServiceImpl implements RecipeService{
 
     @Autowired
     private RecipeRepository recipeRepository;
+
+    @Override
+    public List<Recipe> searchAndFilter(String category, String searchTerm) {
+
+        List<Recipe> recipes;
+
+        if((category != null && !category.equals("ALL CATEGORIES")) && searchTerm != null){
+            recipes = recipeRepository.findByNameStartsWith(searchTerm).stream().filter(recipe -> {
+                return recipe.getCategory().getName().equalsIgnoreCase(category);
+            }).collect(Collectors.toList());
+        } else if((category != null && category.equals("ALL CATEGORIES")) && searchTerm != null){
+            recipes = recipeRepository.findByNameStartsWith(searchTerm);
+        } else if((category != null && !category.equals("ALL CATEGORIES")) && searchTerm == null){
+            recipes = this.findAll().stream().filter(recipe -> {
+                return recipe.getCategory().getName().equalsIgnoreCase(category);
+            }).collect(Collectors.toList());
+        } else{
+            recipes = this.findAll();
+        }
+
+        recipes.sort(recipeComparator);
+        return recipes;
+    }
 
     @Override
     public List<Recipe> findAll() {
