@@ -11,6 +11,7 @@
     <div class="grid-container">
 
       <div th:replace="layout :: logo"></div>
+      <div th:replace="layout :: flash"></div>
 
       <div class="grid-100">
 
@@ -41,9 +42,7 @@
               </p>
             </div>
             <div class="grid-40">
-              <p th:text="${recipe.image}">
-                [photo]
-              </p>
+              <img class="recipe-image" th:src="@{${recipe.image}}" th:alt="|[${recipe.name}]|"/>
             </div>
           </div> <div class="clear"></div>
 
@@ -180,5 +179,6 @@
         </div> <!-- recipes -->
       </div> <!-- grid-100 -->
     </div> <!-- grid-container -->
+    <div th:replace="layout :: scripts"></div>
   </body>
 </html>

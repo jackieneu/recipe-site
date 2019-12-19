@@ -11,9 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -39,8 +37,7 @@ public class User extends BaseEntity {
     @JsonIgnore
     private Role role;
 
-    @OneToMany(fetch = FetchType.EAGER)
-    @JoinColumn(name = "recipe_id")
+    @ManyToMany(fetch = FetchType.EAGER, cascade=CascadeType.ALL)
     @JsonIgnore
     private Set<Recipe> favorites = new HashSet<>();
 

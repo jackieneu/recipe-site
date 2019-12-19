@@ -12,19 +12,19 @@ import java.util.List;
 public interface RecipeRepository extends PagingAndSortingRepository<Recipe, Long> {
 
 
-    @RestResource(rel = "name-starts-with", path = "nameStartsWith")
-    List<Recipe> findByNameStartsWith(@Param("name") String name);
+    @RestResource(rel = "description-contains", path = "descriptionContains")
+    List<Recipe> findByDescriptionIgnoreCaseContaining(@Param("description") String searchTerm);
 
     @Override
-//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_USER')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_USER')")
     Recipe save(Recipe recipe);
 
     @Override
-//    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
     <S extends Recipe> Iterable<S> saveAll(Iterable<S> recipes);
 
     @Override
-    @PreAuthorize("hasRole('ROLE_ADMIN') or @recipeRepository.findOne(#id)?.createdBy?.username == authentication.name")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or @recipeRepository.findById(#id).orElse(null)?.createdBy?.username == authentication.name")
     void deleteById(@Param("id") Long id);
 
     @Override

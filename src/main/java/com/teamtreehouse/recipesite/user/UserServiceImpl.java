@@ -2,8 +2,6 @@ package com.teamtreehouse.recipesite.user;
 
 import com.teamtreehouse.recipesite.recipe.Recipe;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -26,14 +24,21 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void toggleFavorite(User user, Recipe recipe) throws UsernameNotFoundException {
+    public boolean toggleFavorite(User user, Recipe recipe) throws UsernameNotFoundException {
         if(user == null){
             throw new UsernameNotFoundException("User not found!");
         }
         if(user.getFavorites().contains(recipe)){
             user.getFavorites().remove(recipe);
+            return false;
         }else{
             user.getFavorites().add(recipe);
+            return true;
         }
+    }
+
+    @Override
+    public List<User> findAll(){
+        return (List<User>) userRepository.findAll();
     }
 }

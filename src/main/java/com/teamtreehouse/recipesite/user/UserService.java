@@ -7,5 +7,6 @@ import java.util.List;
 public interface UserService {
     User findByUsername(String username);
     void save(User user);
-    void toggleFavorite(User user, Recipe recipe);
+    boolean toggleFavorite(User user, Recipe recipe);
+    List<User> findAll();
 }

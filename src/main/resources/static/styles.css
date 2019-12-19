@@ -203,3 +203,9 @@ button {
   cursor: pointer;
   margin: 0px!important;
 }
+
+.recipe-image {
+  max-height: 400px;
+  max-width: 450px;
+  margin: 5%;
+}

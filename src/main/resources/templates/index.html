@@ -58,12 +58,14 @@
             <div class="hoverBlock">
               <div class="grid-30">
                 <div class="flush-right">
+                  <div th:if="${user?.username} == *{recipe?.createdBy?.username} or ${user?.role?.name} == 'ROLE_ADMIN'" >
                   <form th:action="@{|/recipe/delete/${recipe.id}|}" method="post">
                     <p>
                       <a th:href="@{|/recipe/edit/${recipe.id}|}"> <img th:src="@{/images/edit.svg}" height="12px"/> Edit </a>
                       <button class="favorite-button" type="submit"> <img th:src="@{/images/delete.svg}" height="12px"/> Delete </button>
                     </p>
                   </form>
+                  </div>
                 </div>
               </div>
             </div>

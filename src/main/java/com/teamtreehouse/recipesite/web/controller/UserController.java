@@ -66,6 +66,8 @@ public class UserController {
             redirectAttributes.addFlashAttribute("user", user);
             return "redirect:/signup";
         }
+        redirectAttributes
+                .addFlashAttribute("flash", new FlashMessage("Registration successful!", FlashMessage.Status.SUCCESS));
         return "redirect:/login";
     }
 

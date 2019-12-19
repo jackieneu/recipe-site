@@ -180,14 +180,14 @@ public class RecipeController {
             redirectAttributes.addFlashAttribute("recipe", recipe);
 
             checkErrorForInstructionsOrIngredients(redirectAttributes, interimInstructions, interimIngredients);
-            return String.format("redirect:/recipe/update/%s", recipeId);
+            return String.format("redirect:/recipe/edit/%s", recipeId);
         } else {
             checkErrorForInstructionsOrIngredients(redirectAttributes, interimInstructions, interimIngredients);
             if(interimInstructions.size() == 0 || interimIngredients.size() > 0){
                 redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.recipe", result);
                 redirectAttributes.addFlashAttribute("recipe", recipe);
                 redirectAttributes.addFlashAttribute("flash", new FlashMessage("Invalid input. Please try again.", FlashMessage.Status.FAILURE));
-                return String.format("redirect:/recipe/update/%s", recipeId);
+                return String.format("redirect:/recipe/edit/%s", recipeId);
             }
 
             User user = getUser((UsernamePasswordAuthenticationToken) principal);
@@ -220,10 +220,14 @@ public class RecipeController {
     public String toggleFavorite(@PathVariable Long recipeId, HttpServletRequest request, Principal principal, RedirectAttributes redirectAttributes) {
         Recipe recipe = recipeService.findById(recipeId);
         User user = getUser((UsernamePasswordAuthenticationToken) principal);
-        userService.toggleFavorite(user, recipe);
+        boolean isFavorite = userService.toggleFavorite(user, recipe);
         userService.save(user);
 
-        redirectAttributes.addFlashAttribute("flash", new FlashMessage("Recipe saved as favorite!", FlashMessage.Status.SUCCESS));
+        if(isFavorite){
+            redirectAttributes.addFlashAttribute("flash", new FlashMessage("Recipe saved as favorite!", FlashMessage.Status.SUCCESS));
+        }else{
+            redirectAttributes.addFlashAttribute("flash", new FlashMessage("Recipe removed from favorites!", FlashMessage.Status.SUCCESS));
+        }
 
         return String.format("redirect:%s", request.getHeader("referer"));
     }
@@ -232,6 +236,7 @@ public class RecipeController {
     @PreAuthorize("hasRole('ROLE_ADMIN') or @recipeRepository.findById(#recipeId).orElse(null)?.createdBy?.username == authentication.name")
     public String deleteRecipe(@PathVariable Long recipeId, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         Recipe recipe = recipeService.findById(recipeId);
+        recipeService.clearFavorites(recipe);
         recipeService.delete(recipe);
 
         redirectAttributes.addFlashAttribute("flash", new FlashMessage("Recipe deleted!", FlashMessage.Status.SUCCESS));
