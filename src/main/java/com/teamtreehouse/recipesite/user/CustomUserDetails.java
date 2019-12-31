@@ -13,6 +13,12 @@ import java.util.Set;
 
 public class CustomUserDetails extends BaseEntity implements UserDetails {
 
+    public CustomUserDetails(){}
+
+    public CustomUserDetails(User user) {
+        this.user = user;
+    }
+
     private User user;
 
     Set<GrantedAuthority> authorities=null;

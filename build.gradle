@@ -35,5 +35,7 @@ dependencies {
     compile 'com.h2database:h2'
     compile 'org.hibernate.validator:hibernate-validator-annotation-processor:5.0.6.Final'
     
+    testCompile 'org.springframework.boot:spring-boot-starter-test'
+    testCompile 'org.springframework.security:spring-security-test'
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }

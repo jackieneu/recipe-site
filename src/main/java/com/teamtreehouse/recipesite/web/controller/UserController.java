@@ -1,7 +1,6 @@
 package com.teamtreehouse.recipesite.web.controller;
 
 import com.teamtreehouse.recipesite.recipe.Recipe;
-import com.teamtreehouse.recipesite.role.RoleRepository;
 import com.teamtreehouse.recipesite.role.RoleService;
 import com.teamtreehouse.recipesite.user.CustomUserDetails;
 import com.teamtreehouse.recipesite.user.User;
@@ -88,7 +87,7 @@ public class UserController {
         return "profile";
     }
 
-    private User getUser(UsernamePasswordAuthenticationToken principal){
+    public User getUser(UsernamePasswordAuthenticationToken principal){
         try{
             return userService.findByUsername(((CustomUserDetails) principal.getPrincipal()).getUsername());
         } catch (NullPointerException e) {

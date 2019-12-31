@@ -6,7 +6,7 @@ public interface RecipeService {
     List<Recipe> searchAndFilter(String category, String searchTerm);
     List<Recipe> findAll();
     Recipe findById(Long id);
-    void save(Recipe recipe);
+    Recipe save(Recipe recipe);
     void delete(Recipe recipe);
     void clearFavorites(Recipe recipe);
 }

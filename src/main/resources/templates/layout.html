@@ -21,11 +21,11 @@
 
         <div th:fragment="nav">
             <nav>
-                <a th:if="${user} != null" th:href="@{/profile}" th:text="${user?.username}">Username</a>
-                <a th:if="${user} == null" th:href="@{/signup}">signup</a>
+                <a th:if="${user?.username} != null" th:href="@{/profile}" th:text="${user?.username}">Username</a>
+                <a th:if="${user?.username} == null" th:href="@{/signup}">signup</a>
                 &bull;
-                <a th:if="${user} != null" th:href="@{/logout}">logout</a>
-                <a th:if="${user} == null" th:href="@{/login}">login</a>
+                <a th:if="${user?.username} != null" th:href="@{/logout}">logout</a>
+                <a th:if="${user?.username} == null" th:href="@{/login}">login</a>
             </nav>
         </div>
 
