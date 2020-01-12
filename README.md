@@ -1,4 +1,4 @@
-# Todo API with Spark | Techdegree Project 12
+# Recipe Site with Java, Spring, and Hibernate | Techdegree Project 12
 
 ## Project Prompt
 
